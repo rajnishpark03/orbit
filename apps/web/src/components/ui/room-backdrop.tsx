@@ -121,10 +121,8 @@ export function RoomBackdrop() {
   const seed = hashCode(currentRoom?.code ?? 'ORBIT');
   const palette = PALETTES[seed % PALETTES.length];
   const Sketch = SKETCHES[Math.floor(seed / PALETTES.length) % SKETCHES.length];
-  const gradientId = `orbit-backdrop-${palette.name}`;
-
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       {/* Colour wash keyed to this room */}
       <div
         className="absolute inset-0"
@@ -134,22 +132,13 @@ export function RoomBackdrop() {
                        radial-gradient(55% 50% at 50% 110%, ${palette.wash}, transparent 65%)`,
         }}
       />
-      {/* Gradient lives in its own SVG; the sketch references it by id, which
-          is valid across SVG elements in the same document and keeps each
-          sketch component a plain drawing with no plumbing. */}
-      <svg width="0" height="0" className="absolute">
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={palette.from} />
-            <stop offset="100%" stopColor={palette.to} />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      {/* The couple sketch — big, low-contrast, bottom-right so it never fights text */}
+      {/* The couple sketch — a solid palette colour (cross-<svg> gradient refs
+          don't render reliably in Chrome). Low opacity + bottom-right so it
+          reads as artwork behind the content, never fighting the text. */}
       <Sketch
-        className="absolute -bottom-6 -right-8 h-[62vh] w-auto opacity-[0.14] sm:-right-4 sm:h-[70vh]"
-        stroke={`url(#${gradientId})`}
+        className="absolute -bottom-4 -right-6 h-[58vh] w-auto sm:-right-2 sm:h-[68vh]"
+        style={{ color: palette.from, opacity: 0.24 }}
+        stroke="currentColor"
         fill="none"
       />
     </div>
