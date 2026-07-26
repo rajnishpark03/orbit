@@ -213,12 +213,43 @@ export function useScreenShare(otherDeviceIds: string[]) {
       }
     };
 
+    // Whenever a device (re)joins the room — including someone who just
+    // refreshed their page — resend the screen to them if we're sharing. The
+    // previous connection to that device is dead, so tear it down and make a
+    // fresh offer; without this, a refresh would lose the shared screen and it
+    // would never come back on its own.
+    const onMemberJoined = (member: { deviceId: string }) => {
+      if (!sharingRef.current || member.deviceId === deviceId.current) return;
+      outgoingPeersRef.current.get(member.deviceId)?.close();
+      outgoingPeersRef.current.delete(member.deviceId);
+      // Small delay so their socket has fully settled into the room first.
+      setTimeout(() => offerTo(member.deviceId), 400);
+    };
+
+    // A device that left drops its connections on both sides, so a later
+    // rejoin always starts clean.
+    const onMemberLeft = ({ deviceId: id }: { deviceId: string }) => {
+      outgoingPeersRef.current.get(id)?.close();
+      outgoingPeersRef.current.delete(id);
+      incomingPeersRef.current.get(id)?.close();
+      incomingPeersRef.current.delete(id);
+      if (id === remoteSharerIdRef.current) {
+        remoteSharerIdRef.current = null;
+        setRemoteSharerId(null);
+        setRemoteStream(null);
+      }
+    };
+
     socket.on(ServerEvents.SCREEN_PEER_STOPPED, onPeerStopped);
     socket.on(ServerEvents.SCREEN_SIGNAL, onSignal);
+    socket.on(ServerEvents.ROOM_MEMBER_JOINED, onMemberJoined);
+    socket.on(ServerEvents.ROOM_MEMBER_LEFT, onMemberLeft);
 
     return () => {
       socket.off(ServerEvents.SCREEN_PEER_STOPPED, onPeerStopped);
       socket.off(ServerEvents.SCREEN_SIGNAL, onSignal);
+      socket.off(ServerEvents.ROOM_MEMBER_JOINED, onMemberJoined);
+      socket.off(ServerEvents.ROOM_MEMBER_LEFT, onMemberLeft);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
