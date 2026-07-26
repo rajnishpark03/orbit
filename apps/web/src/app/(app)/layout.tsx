@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { SyncProvider } from '@/providers/sync-provider';
 import { VoiceProvider } from '@/providers/voice-provider';
+import { ScreenShareProvider } from '@/providers/screen-share-provider';
 import { PlayerProvider } from '@/providers/player-provider';
 import { AppShell } from '@/components/layout/app-shell';
 
@@ -27,9 +28,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SyncProvider>
       <VoiceProvider>
-        <PlayerProvider>
-          <AppShell>{children}</AppShell>
-        </PlayerProvider>
+        <ScreenShareProvider>
+          <PlayerProvider>
+            <AppShell>{children}</AppShell>
+          </PlayerProvider>
+        </ScreenShareProvider>
       </VoiceProvider>
     </SyncProvider>
   );

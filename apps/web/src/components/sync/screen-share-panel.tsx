@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
-import { useScreenShare } from '@/hooks/use-screen-share';
+import { useScreenShareCtx } from '@/providers/screen-share-provider';
 import { exitFullscreen, isFullscreenActive, onFullscreenChange, toggleFullscreen } from '@/lib/fullscreen';
 
-export function ScreenSharePanel({ otherDeviceIds }: { otherDeviceIds: string[] }) {
-  const { status, localStream, remoteStream, startSharing, stopSharing } = useScreenShare(otherDeviceIds);
+export function ScreenSharePanel() {
+  const { status, localStream, remoteStream, startSharing, stopSharing, active } = useScreenShareCtx();
+  const otherPresent = status === 'sharing' || remoteStream !== null || active;
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteWrapRef = useRef<HTMLDivElement>(null);
@@ -51,7 +52,7 @@ export function ScreenSharePanel({ otherDeviceIds }: { otherDeviceIds: string[] 
             Stop sharing
           </button>
         ) : (
-          <button className="btn-primary text-xs" onClick={startSharing} disabled={otherDeviceIds.length === 0}>
+          <button className="btn-primary text-xs" onClick={startSharing} >
             Share screen
           </button>
         )}
@@ -63,7 +64,7 @@ export function ScreenSharePanel({ otherDeviceIds }: { otherDeviceIds: string[] 
         </p>
       )}
 
-      {otherDeviceIds.length === 0 && !isSharing && !remoteStream && (
+      {!isSharing && !remoteStream && (
         <p className="text-xs text-white/30">Waiting for someone else to join the room before you can share.</p>
       )}
 

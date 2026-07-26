@@ -6,6 +6,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { RoomGate } from '@/components/room/room-gate';
 import { PlayerSlot } from '@/components/sync/player-slot';
 import { ScreenSharePanel } from '@/components/sync/screen-share-panel';
+import { useScreenShareCtx } from '@/providers/screen-share-provider';
 import { CameraPanel } from '@/components/sync/camera-panel';
 import { useSync } from '@/providers/sync-provider';
 import { usePlayer } from '@/providers/player-provider';
@@ -49,7 +50,6 @@ function SyncSession() {
     connected,
     roomCode,
     members,
-    deviceId,
     play,
     pause,
     seek,
@@ -65,9 +65,9 @@ function SyncSession() {
   const { playerRef, localPositionMs, durationMs, seekingRef, isFullscreen, toggleFullscreen } = usePlayer();
   const [showLoader, setShowLoader] = useState(false);
   const [form, setForm] = useState<LoaderForm>(EMPTY_FORM);
-  const otherDeviceIds = members.filter((m) => m.deviceId !== deviceId).map((m) => m.deviceId);
   const memberNames = Object.fromEntries(members.map((m) => [m.deviceId, m.deviceName]));
   const roomName = useRoomStore((state) => state.currentRoom?.name);
+  const { active: screenActive } = useScreenShareCtx();
 
   function handleTogglePlay() {
     const player = playerRef.current;
@@ -122,7 +122,8 @@ function SyncSession() {
           <CameraPanel memberNames={memberNames} />
         </aside>
 
-        <div className="order-1 min-w-0 space-y-6 xl:order-2">
+        <div className="order-1 flex min-w-0 flex-col gap-6 xl:order-2">
+      <div className={`min-w-0 ${screenActive ? 'order-2' : 'order-1'}`}>
       <GlassCard hoverable={false} className="overflow-hidden p-0">
         {/* The persistent player positions itself over this rectangle. */}
         <PlayerSlot className={mediaState.track ? 'aspect-video w-full' : 'hidden'} />
@@ -200,14 +201,17 @@ function SyncSession() {
       </GlassCard>
 
           {mediaState.track && (
-            <div className="flex gap-4">
+            <div className="mt-4 flex gap-4">
               <button className="text-sm text-white/40 hover:text-white/70" onClick={() => setShowLoader(true)}>
                 Add or change media
               </button>
             </div>
           )}
+      </div>
 
-          <ScreenSharePanel otherDeviceIds={otherDeviceIds} />
+          <div className={`min-w-0 ${screenActive ? 'order-1' : 'order-2'}`}>
+            <ScreenSharePanel />
+          </div>
         </div>
 
         <aside className="order-2 min-w-0 xl:order-3">
