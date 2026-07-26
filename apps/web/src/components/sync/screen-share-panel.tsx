@@ -11,7 +11,7 @@ export function ScreenSharePanel() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteWrapRef = useRef<HTMLDivElement>(null);
-  const [remoteMuted, setRemoteMuted] = useState(true);
+  const [remoteMuted, setRemoteMuted] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
 
   // Mirror the document's fullscreen state so Esc / the system back gesture
@@ -19,10 +19,26 @@ export function ScreenSharePanel() {
   useEffect(() => onFullscreenChange(() => setFullscreen(isFullscreenActive())), []);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(() => undefined);
-    }
+    const el = remoteVideoRef.current;
+    if (!el || !remoteStream) return;
+    el.srcObject = remoteStream;
+    el.muted = false;
+    setRemoteMuted(false);
+
+    // Play with sound from the start. If the browser blocks unmuted autoplay
+    // (no prior gesture), fall back to muted playback and un-mute on the very
+    // first tap anywhere — so there's still no button, sound just turns on.
+    el.play().catch(() => {
+      el.muted = true;
+      setRemoteMuted(true);
+      el.play().catch(() => undefined);
+      const unmute = () => {
+        el.muted = false;
+        setRemoteMuted(false);
+        window.removeEventListener('pointerdown', unmute);
+      };
+      window.addEventListener('pointerdown', unmute, { once: true });
+    });
   }, [remoteStream]);
 
   useEffect(() => {
@@ -94,17 +110,6 @@ export function ScreenSharePanel() {
             </button>
           )}
           <div className="absolute bottom-3 right-3 flex gap-2">
-            {remoteMuted && (
-              <button
-                onClick={() => {
-                  setRemoteMuted(false);
-                  remoteVideoRef.current?.play().catch(() => undefined);
-                }}
-                className="glass rounded-full px-3 py-1.5 text-xs text-white/90"
-              >
-                🔇 Tap for sound
-              </button>
-            )}
             <button
               onClick={() => toggleFullscreen(remoteWrapRef.current, remoteVideoRef.current)}
               className="glass rounded-full px-3 py-1.5 text-xs text-white/90"
